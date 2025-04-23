@@ -1,0 +1,88 @@
+//PARAMS N is num of staions need to be >=1
+const N = 4
+range IDS = 0..N-1
+range IDE = 0..N
+
+//ELEVATOR with different states
+ELEVATOR = EMPTY_TOP,
+EMPTY_TOP = (
+	descend -> EMPTY_BOTTOM
+	| produce -> descend -> send ->EMPTY_BOTTOM
+),
+EMPTY_BOTTOM = (
+	ascend -> EMPTY_TOP
+	|collect -> ascend -> consume-> EMPTY_TOP
+).
+
+PRODUCER = (produce -> PRODUCER).
+CONSUMER = (consume -> CONSUMER).
+
+
+//STATION and MINER declaration, engine is ignored
+//as stations can rename to ensure sync
+//cart is ignored as it can be simulated into a signal
+//that would traverse all stations
+MINER = (deposit -> MINER).
+
+STATION = EMPTY_STATION,
+EMPTY_STATION = (
+	deposit -> HOLD_GEM
+	| collect -> HOLD_CART
+),
+HOLD_GEM = (collect -> READY),
+HOLD_CART = (deposit -> READY),
+READY = (send -> EMPTY_STATION).
+
+ENGINE = (send -> collect -> ENGINE).
+
+||SYSTEM = (
+	//relabel stations
+	forall[i:IDS] station[i]:STATION / 
+		{ send[i+1]/station[i].send, 
+		collect[i]/station[i].collect,
+		deposit[i]/station[i].deposit}
+	||forall[i:IDS] miner[i]:MINER/{deposit[i]/miner[i].deposit}
+	||forall[i:IDE] engine[i]:ENGINE/
+		{send[i]/engine[i].send,
+		collect[i]/engine[i].collect}
+	//elevator take first engine to send and last engine to collect
+	||ELEVATOR/{send[0]/send, collect[N]/collect}
+	||PRODUCER
+	||CONSUMER
+	
+)/{elevator_send/send[0],elevator_collect/collect[N]}.//relabel for better anim
+
+//--------------------SAFETY and LIVENESS-----
+
+//the station can only deposit after sending cart away
+//aka maximum storage of 1 gem
+property NO_DOUBLE_DEPOSIT =
+    ( deposit -> WAIT ),
+WAIT =
+    (send -> NO_DOUBLE_DEPOSIT).
+
+//ensuring only one cart in each station
+property ONE_CART_AT_STATION =
+    ( collect -> OCCUPIED ),      
+OCCUPIED =
+    ( send -> ONE_CART_AT_STATION ).
+
+
+||CHECK_SYSTEM = (
+    forall[i:IDS] ndd[i]:NO_DOUBLE_DEPOSIT/
+		{deposit[i]/ndd[i].deposit,
+		send[i+1]/ndd[i].send}
+	||forall[i:IDS] exclude[i]:ONE_CART_AT_STATION / 
+			{ collect[i]/exclude[i].collect, send[i+1]/exclude[i].send }
+    || SYSTEM
+).
+//deadlock occurs when check-safety
+
+//to check a cart finally consumed
+//and system can always produce
+progress ALWAYS_PRODUCE = { produce }
+progress FINALLY_CONSUME = { consume }
+//miner can keep mining
+progress DEPOSIT[i:IDS] = { deposit[i] }
+//stations can send cart away
+progress SEND[i:IDS] = { send[i+1] }
