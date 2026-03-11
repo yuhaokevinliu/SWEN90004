@@ -1,0 +1,79 @@
+const N =3
+const TOP = 0
+const BOTTOM = 1
+const EMPTY = 0
+const FULL = 1
+
+range Loop = 0..N
+range NUM_STATION = 0..N-1
+range Position = TOP..BOTTOM
+range Occupy = EMPTY..FULL
+
+
+PRODUCER = (produce -> PRODUCER).
+CONSUMER = (consume -> CONSUMER).
+
+ELEVATOR = ELEVATOR[TOP][EMPTY],
+ELEVATOR[loc:Position][occ:Occupy] = (
+    when (loc == TOP && occ == EMPTY)
+        produce -> descend -> ELEVATOR[BOTTOM][FULL]
+  | when (loc == TOP && occ == EMPTY)
+		descend -> ELEVATOR[BOTTOM][EMPTY]
+  | when (loc == TOP && occ == FULL)
+        consume -> ELEVATOR[TOP][EMPTY]
+  | when (loc == BOTTOM && occ == FULL)
+        s[0].depart -> ELEVATOR[BOTTOM][EMPTY]
+  | when (loc == BOTTOM && occ == EMPTY)
+        ascend -> ELEVATOR[TOP][EMPTY]
+  | when (loc == BOTTOM && occ == EMPTY)
+        s[N+1].arrive -> ascend -> consume -> ELEVATOR[TOP][EMPTY]
+).
+
+
+BUFFER = BUFFER[0],
+BUFFER[i:0..N] = (
+	when (i > 0) consume -> BUFFER[i-1]
+| 	when (i < N) produce -> BUFFER[i+1]
+	
+	
+).
+
+
+//first and last engine is working as connection between elevator and engine loops
+FIRST_ENGINE = (s[0].depart -> FIRST_ENGINE).
+LAST_ENGINE = (s[N+1].arrive -> LAST_ENGINE).
+
+||TEST = (ELEVATOR||FIRST_ENGINE||LAST_ENGINE).
+
+//with first and last defined by themselves,
+//there is N stations with N - 1 engines
+STATION = (arrive -> deposit -> depart -> STATION
+		|deposit -> arrive -> depart -> STATION
+).
+
+ENGINE = (depart -> arrive -> ENGINE).
+
+||LOOP = (
+	s[1..N]:STATION
+	||
+	forall[i:0..N](
+		s[i]:ENGINE/{s[i+1].arrive/s[i].arrive}
+	)
+).
+
+||SYSTEM = (
+	ELEVATOR
+	||CONSUMER
+	||PRODUCER
+	||FIRST_ENGINE
+	||LAST_ENGINE
+	||LOOP
+	||BUFFER
+).
+
+ONE = (arrive -> depart -> ONE).
+TWO = (depart -> arrive -> TWO).
+
+||SAFETY = forall[i:0..N]
+
+

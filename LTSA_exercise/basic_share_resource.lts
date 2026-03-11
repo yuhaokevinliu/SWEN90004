@@ -1,0 +1,13 @@
+
+//Sample Declaration of resource and user
+RESOURCE = (acquire -> release -> RESOURCE).
+USER     = (acquire -> use -> release -> USER).
+
+// 5 users 
+const N = 5
+
+//
+||BASIC = (USER || RESOURCE).
+||FIVE = ([i:0..N]:USER|| [i:0..N]::RESOURCE).
+
+||RESOURCE_SHARE = (a:USER || b:USER || {a,b}::RESOURCE).

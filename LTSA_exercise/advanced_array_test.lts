@@ -1,0 +1,16 @@
+const N = 10 // number of resources
+range T = 1..N // resources requested
+const U = 5 // number of users
+RESOURCE_USER =
+( get[n:T] -> use[n] -> put[n] -> RESOURCE_USER ).
+RESOURCE_ALLOC = RESOURCE_ALLOC[N],
+RESOURCE_ALLOC[r:0..N] =
+// note: index can be zero!
+( when (r > 0) get[n:1..r] -> RESOURCE_ALLOC[r-n]
+| put[n:T] -> RESOURCE_ALLOC[r+n]
+).
+
+||SYSTEM =
+( t[u:1..U]:RESOURCE_USER
+|| {t[u:1..U]}::RESOURCE_ALLOC
+).

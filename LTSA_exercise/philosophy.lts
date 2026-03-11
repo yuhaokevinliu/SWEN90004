@@ -1,0 +1,37 @@
+// the lecture philosophy problem
+// N philosophys and N chopsticks
+// possibly deadlock caused by all philosophys pick their left side chopstick
+
+const N = 5
+const Limit = 2
+range B = 0..Limit
+//PHY short for phylosophy
+PHY = (sit -> left.pick -> right.pick -> eat -> left.drop -> right.drop -> stand -> PHY).
+
+CHOPSTICK = (pick -> drop -> CHOPSTICK).
+
+BUFFER = BUFFER[0],
+BUFFER[i:B] = (
+	when i < Limit sit -> BUFFER[i+1]
+	|when i> 0 stand -> BUFFER[i-1]
+).
+
+
+||DINNER =(
+	forall[i:0..N-1]
+	(
+		(phil[i]:PHY)
+		||
+		({phil[i].left,phil[(i-1+N)% N].right}::CHOPSTICK)
+	
+	)	||
+		({phil[i:0..N-1]}::BUFFER)
+).
+
+//each philosophy will sit, eat, stand
+ONE = (sit -> eat -> stand -> ONE).
+||SYSTEM = (DINNER
+	||
+	({phil[i:0..N-1]}::ONE)
+).
+

@@ -1,0 +1,9 @@
+//Array
+const N = 10
+
+NUMS = NUM[0],
+NUM[i:0..N] = (
+	when (i >= N) dec -> NUM[i-1]
+	|when (i < N) inc -> NUM[i+1]
+	|when (i<N && i > 0) dec -> NUM[i-1] 
+).

@@ -1,0 +1,25 @@
+const N = 5
+range T = 0..N
+
+//A restaurant SYSTEM CONSUMERS can keep order, with one front desk,
+//the KITCHEN can buffer orders and make them one by one
+
+
+CONSUMER = (order -> confirm-> take -> eat -> CONSUMER).
+
+//front desk take only one order at a time
+FRONTDESK = (order -> confirm -> FRONTDESK).
+
+
+
+KITCHEN = ORDERS[0],
+ORDERS[n:T] =(
+		when(n>0) make -> take -> ORDERS[n-1]
+		| when(n<N) confirm -> ORDERS[n+1]
+).
+
+
+||SYSTEM = ([0..4]:CONSUMER
+			||{[0..4]}::FRONTDESK
+			|| {[0..4]}::KITCHEN			
+).

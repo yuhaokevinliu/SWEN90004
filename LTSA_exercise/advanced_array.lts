@@ -1,0 +1,25 @@
+//Array
+const N = 10
+range T = 0..N	//range of put and get is 1 to N
+
+RESOURCES = AVALIABLE[10],
+//allow only put resource from used
+//allow only take resource from avaliable
+USED[i:T] = (
+	switch -> AVALIABLE[N-i]
+	| put[n:0..i] -> AVALIABLE[N-i+n]
+),
+AVALIABLE[i:T] = (
+	switch -> USED[N-i]
+	| get[n:0..i] -> USED[N-i+n]
+					
+).
+
+//USER = (get -> use -> put -> USER).
+USER = (get[n:0..10] -> use[n] -> put[n] -> USER).
+
+			// USER(N=5) [0..5]:USER 
+
+||SYSTEM = (
+		[0..5]:USER
+		||{[0..5]}::RESOURCES).

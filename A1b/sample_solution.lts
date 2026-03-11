@@ -1,0 +1,141 @@
+// sample solution for assignment 1b
+// Nic Geard
+// 17 April 2025
+
+// number of stations in the mine
+const Stations = 2
+
+// constants for Boolean value
+const False = 0
+const True = 1
+range Boolean = False..True
+
+// constants for current location of elevator
+const Top = 0
+const Bottom = 1
+range Elevator_Loc = Top..Bottom
+
+// The Elevator process
+// - Uses indices to keep track of current location (top or bottom) and occupancy status.
+// - Interacts with Producer and Consumer (arrive and depart) to handle creation and removal of Carts.
+// - Interacts with Engines (elevator.deliver and elevator.collect) to handle movement of Carts
+// - Interacts with Operator (ascend and descend) to handle movement of Elevator when empty.
+// Note: assumes that elevator immediately ascends/descends when it is at correct location,
+// empty, and an eligible cart is ready to enter.
+
+ELEVATOR
+	= ELEVATOR[Top][False],
+ELEVATOR[location:Elevator_Loc][occupied:Boolean]
+	= ( when (location == Top && occupied == False)
+				arrive -> ELEVATOR[Bottom][True]
+	  | when (location == Top && occupied == True)
+				depart -> ELEVATOR[Top][False]
+	  | when (location == Top && occupied == False)
+				descend -> ELEVATOR[Bottom][False]
+	  | when (location == Bottom && occupied == False)
+				elevator.deliver -> ELEVATOR[Top][True]
+	  | when (location == Bottom && occupied == True)
+				elevator.collect -> ELEVATOR[Bottom][False]
+	  | when (location == Bottom && occupied == False)
+				ascend -> ELEVATOR[Top][False]
+	  ).
+
+
+// The Producer, Consumer and Operator processes
+// - Interact with the Elevator (arrive, depart, ascend and descend)
+
+PRODUCER = ( arrive -> PRODUCER ).
+
+CONSUMER = ( depart -> CONSUMER ).
+
+OPERATOR = ( {ascend, descend} -> OPERATOR ).
+
+// The Station process
+// - Uses indices to keep track of whether a gem is present and occupancy status.
+// - Interacts with Engines (deliver and collect) to handle movement of Carts.
+// - Interacts with Miners (deposit) to handly replenishment of gems.
+// Note: assumes that a gem is tranferred to a Cart at the point at which it is collected.
+
+STATION
+	= STATION[False][False],
+STATION[gem:Boolean][occupied:Boolean]
+	= ( when occupied == False
+				deliver -> STATION[gem][True]
+	  | when occupied == True && gem == True
+				collect -> STATION[False][False]
+	  | when gem == False
+				deposit -> STATION[True][occupied]
+	  ).
+
+// The Miner process
+// - Interacts with Stations
+
+MINER = ( deposit -> MINER ).
+
+// Create N indexed Station / Miner pairs.
+
+||STATIONS(N=Stations)
+	= forall [k:0..N-1]( station[k]:(STATION || MINER) ).
+
+// The Engine processes
+// - Interacts with Elevator and Stations (collect and deliver)
+
+FIRST_ENGINE = ( elevator.collect -> station[0].deliver -> FIRST_ENGINE ).
+
+LAST_ENGINE = ( station[Stations-1].collect -> elevator.deliver -> LAST_ENGINE ).
+
+ENGINE = ( collect -> deliver -> ENGINE ).
+
+// Create N-1 regular Engines (in addition to first and last)
+// - Each Engine is prefixed with its origin and destination station numbers.
+// Note: uses relabelling to match collect and deliver actions with appropriate Stations.
+
+||ENGINES(N=Stations)
+	= ( forall [k:0..N-2] engine[k][k+1]:ENGINE )
+		/{ forall [i:0..N-2] { station[i].collect/engine[i][i+1].collect,
+				       station[i+1].deliver/engine[i][i+1].deliver }
+		}.
+
+
+// Task 1: Original system, as specified in Assignment 1a.
+// - The default safety check will detect a deadlock in this system
+
+||SYSTEM_WITH_DEADLOCK
+	= (  PRODUCER || CONSUMER || OPERATOR || ELEVATOR
+	  || STATIONS || FIRST_ENGINE || LAST_ENGINE || ENGINES
+	  ).
+
+
+// Task 2: Example safety and progress properties:
+// Note: there are many other possible properties!
+
+// Ensure that no engine leaves a station without a gem being mined.
+property SAFE_STATION = ( deposit -> collect -> SAFE_STATION ).
+
+// Ensure that the elevator never ascends or descends twice in a row.
+property SAFE_ELEVATOR = ( {arrive,descend} -> {ascend,elevator.deliver} -> SAFE_ELEVATOR ).
+
+// ensures that carts can continue to depart from the elevator
+progress ALWAYS_DEPART = { depart }
+
+
+// Task 3: Modified system.
+// We can remove the deadlock by making the elevator.deliver action higher priority.
+// This prevents the arrival of new Carts when the system is already "full".
+// Note: there are many other ways of removing the deadlock from the original system!
+
+||SYSTEM = ( SYSTEM_WITH_DEADLOCK ) << {elevator.deliver}.
+
+
+// Composing together the safety checks with the modified system, to ensure it behaves as desired.
+
+||SAFE_SYSTEM
+	= (  SYSTEM 
+      || forall[k:0..Stations-1] ( station[k]:SAFE_STATION )
+	  || SAFE_ELEVATOR
+ 	  ).
+
+
+		
+
+

@@ -1,0 +1,21 @@
+//relabelling
+
+SERVER = (receive -> reply -> SERVER)/{send/receive}.
+CLIENT = (send -> receive -> CLIENT)/{reply/receive}.
+
+||SYSTEM = (SERVER || CLIENT).
+
+SERVER2 = (receive -> reply -> SERVER2).
+CLIENT2 = (send -> receive -> CLIENT2).
+||SYSTEM2 = (
+    SERVER2/{send/receive}
+    || 
+    CLIENT2/{reply/receive}
+).
+
+//relabel with multiple client and single server
+
+||SYSTEM_N (N=3) = (
+    [1..N] : (CLIENT2/{reply/receive})
+    || {[1..N]} :: (SERVER2/{send/receive})
+).
